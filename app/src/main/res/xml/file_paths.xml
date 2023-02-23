@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+<!--    <external-path name="my_images" path="Android/data/com.example.savepicturelocal/files/Pictures" />-->
+<!--    <external-files-path name="my_images" path="images/"/>-->
+<!--    <external-files-path name="my_images" path="/" />-->
+    <external-files-path name="my_images" path="/" />
+<!--    /sdcard/Pictures-->
+<!--    /storage/emulated/0/Pictures-->
+</paths>
