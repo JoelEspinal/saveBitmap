@@ -42,23 +42,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var appBarConfiguration: AppBarConfiguration
     private lateinit var binding: ActivityMainBinding
-    var photoFile: File? = null
-    val CAPTURE_IMAGE_REQUEST = 1
-    var mCurrentPhotoPath: String? = null
     var imageView: ImageView? = null
-
-    private var latestTmpUri: Uri? = null
-
-    private var resultLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { isSuccess ->
-        if (isSuccess) {
-            // There are no request codes
-//            val data: Intent? = result.data
-            latestTmpUri?.let { uri ->
-                imageView?.setImageURI(uri)
-
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -75,18 +59,10 @@ class MainActivity : AppCompatActivity() {
         imageView = binding.imageView
 
         binding.fab.setOnClickListener { view ->
-//            takeImage()
-//            takePictureNew()
-//            takePictureOld()
-            saveBitmap(imageView?.drawToBitmap())
+            convertBitmap()
         }
     }
 
-    private fun saveBitmap(bitmap: Bitmap?) {
-        bitmap.let {
-            saveImage(it!!, context = applicationContext, "Picture")
-        }
-    }
 
     /// @param folderName can be your app's name
     private fun saveImage(bitmap: Bitmap, context: Context, folderName: String) {
@@ -111,6 +87,10 @@ class MainActivity : AppCompatActivity() {
             }
             val fileName = System.currentTimeMillis().toString() + ".png"
             val file = File(directory, fileName)
+            if (!file.exists()) {
+                file.createNewFile()
+            }
+
             saveImageToStream(bitmap, FileOutputStream(file))
             if (file.absolutePath != null) {
                 val values = contentValues()
@@ -140,39 +120,23 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-
-    private fun takePictureNew() {
+    private fun convertBitmap() {
         try {
             if (ContextCompat.checkSelfPermission(
                     this,
-                    Manifest.permission.CAMERA
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
                 ActivityCompat.requestPermissions(
                     this,
                     arrayOf(
-                        Manifest.permission.CAMERA,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                        Manifest.permission.READ_MEDIA_IMAGES
                     ),
                     0
                 )
             } else {
                 try {
-                    val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-                    takeImage()
-//                    resultLauncher.launch(takePictureIntent)
-
-
-
-                //
-//                    val imagesFolder = File(Environment.getExternalStorageDirectory(), "Camera")
-//                    imagesFolder.mkdirs()
-//                    val random = Random()
-//                    val n = random.nextInt(10000)
-//                    val image = File(imagesFolder, "YourApplication$n.jpg")
-//                    val photoUri = Uri.fromFile(image)
-//                    intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri); // set the image file name
+                    saveBitmap(imageView?.drawToBitmap())
                 } catch (ex: Exception) {
                     // Error occurred while creating the File
                     displayMessage(baseContext, ex.message.toString())
@@ -182,87 +146,14 @@ class MainActivity : AppCompatActivity() {
             Log.d("Error", "this is an error")
         }
     }
-
-    private fun takePictureOld() {
-        try {
-            if (ContextCompat.checkSelfPermission(
-                    this,
-                    Manifest.permission.CAMERA
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(
-                        Manifest.permission.CAMERA,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                        Manifest.permission.READ_MEDIA_IMAGES
-                    ),
-                    0
-                )
-            } else {
-                try {
-                    val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-                    photoFile = createImageFile()
-                    // Continue only if the File was successfully created
-                    if (photoFile != null) {
-                        val photoURI = FileProvider.getUriForFile(
-                            this,
-                            "com.example.savepicturelocal.fileprovider",
-                            photoFile!!,
-                        )
-                        takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI)
-                        startActivityForResult(takePictureIntent, CAPTURE_IMAGE_REQUEST)
-                    }
-                } catch (ex: Exception) {
-                    // Error occurred while creating the File
-                    displayMessage(baseContext, ex.message.toString())
-                }
-            }
-        } catch (ex: Exception) {
-            Log.d("Error", "this is an error")
+    private fun saveBitmap(bitmap: Bitmap?) {
+        bitmap.let {
+            saveImage(it!!, context = applicationContext, "Picture")
         }
     }
 
     private fun displayMessage(context: Context, message: String) {
         Toast.makeText(context, message, Toast.LENGTH_LONG).show()
-    }
-
-//    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-//        super.onActivityResult(requestCode, resultCode, data)
-//
-//        if (requestCode == CAPTURE_IMAGE_REQUEST && resultCode == Activity.RESULT_OK) {
-//            val myBitmap = BitmapFactory.decodeFile(photoFile!!.absolutePath)
-//            imageView?.setImageBitmap(myBitmap)
-//
-//        } else {
-//            displayMessage(baseContext, "Request cancelled or something went wrong.")
-//        }
-//    }
-
-    @Throws(IOException::class)
-    private fun createImageFile(): File {
-        val collection =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                MediaStore.Video.Media.getContentUri(
-                    MediaStore.VOLUME_EXTERNAL
-                )
-            } else {
-                MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-            }
-
-        // Create an image file name
-        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
-        val imageFileName = "JPEG_" + timeStamp + "_"
-        val storageDir = getExternalFilesDir(collection.toString())
-        val image = File.createTempFile(
-            imageFileName, /* prefix */
-            ".jpg", /* suffix */
-            storageDir      /* directory */
-        )
-
-        // Save a file: path for use with ACTION_VIEW intents
-        mCurrentPhotoPath = image.absolutePath
-        return image
     }
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         // Inflate the menu; this adds items to the action bar if it is present.
@@ -284,29 +175,5 @@ class MainActivity : AppCompatActivity() {
         val navController = findNavController(R.id.nav_host_fragment_content_main)
         return navController.navigateUp(appBarConfiguration)
                 || super.onSupportNavigateUp()
-    }
-
-    private fun takeImage() {
-        lifecycleScope.launchWhenStarted {
-            getTmpFileUri().let { uri ->
-                latestTmpUri = uri
-                resultLauncher.launch(uri)
-            }
-        }
-    }
-    private fun getTmpFileUri(): Uri {
-        val tmpFile = File.createTempFile("tmp_image_file", ".png", getExternalFilesDir(Environment.DIRECTORY_PICTURES)).apply {
-            createNewFile()
-            deleteOnExit()
-        }
-
-        val uri =  FileProvider.getUriForFile(applicationContext, "${BuildConfig.APPLICATION_ID}.fileprovider", tmpFile)
-
-
-        val photoUri = Uri.fromFile(tmpFile)
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri); // set the image file name
-
-
-        return  uri
     }
 }
